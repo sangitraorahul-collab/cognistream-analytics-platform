@@ -1,0 +1,25 @@
+
+[
+  {
+    "event_id": "ide_001",
+    "user_id": "dev_101",
+    "project_name": "cognistream",
+    "event_type": "file_save",
+    "event_timestamp": "2026-10-13T09:40:00Z",
+    "metadata": {
+      "file_name": "schema.sql",
+      "language": "sql"
+    }
+  },
+  {
+    "event_id": "ide_002",
+    "user_id": "dev_102",
+    "project_name": "cognistream",
+    "event_type": "file_edit",
+    "event_timestamp": "2026-10-13T10:25:00Z",
+    "metadata": {
+      "file_name": "validate_data.py",
+      "language": "python"
+    }
+  }
+]

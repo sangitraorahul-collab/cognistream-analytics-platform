@@ -1,0 +1,25 @@
+
+[
+  {
+    "event_id": "sl_001",
+    "user_id": "dev_101",
+    "project_name": "cognistream",
+    "event_type": "message",
+    "event_timestamp": "2026-10-13T09:35:00Z",
+    "metadata": {
+      "channel": "data-engineering",
+      "message_text": "Database schema preparation started"
+    }
+  },
+  {
+    "event_id": "sl_002",
+    "user_id": "dev_102",
+    "project_name": "cognistream",
+    "event_type": "message",
+    "event_timestamp": "2026-10-13T10:20:00Z",
+    "metadata": {
+      "channel": "project-updates",
+      "message_text": "Sample API data is ready for validation"
+    }
+  }
+]

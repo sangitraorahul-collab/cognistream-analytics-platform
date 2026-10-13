@@ -1,0 +1,26 @@
+
+[
+  {
+    "event_id": "gh_001",
+    "user_id": "dev_101",
+    "project_name": "cognistream",
+    "event_type": "push",
+    "event_timestamp": "2026-10-13T09:30:00Z",
+    "metadata": {
+      "branch": "main",
+      "commit_count": 2
+    }
+  },
+  {
+    "event_id": "gh_002",
+    "user_id": "dev_102",
+    "project_name": "cognistream",
+    "event_type": "pull_request",
+    "event_timestamp": "2026-10-13T10:15:00Z",
+    "metadata": {
+      "branch": "feature/database",
+      "commit_count": 1
+    }
+  }
+]
+    
