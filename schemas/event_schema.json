@@ -13,10 +13,12 @@
   ],
   "properties": {
     "event_id": {
-      "type": "string"
+      "type": "string",
+      "description": "Unique identifier for the event"
     },
     "user_id": {
-      "type": "string"
+      "type": "string",
+      "description": "Identifier of the user generating the event"
     },
     "project_name": {
       "type": "string"
@@ -29,7 +31,8 @@
       "format": "date-time"
     },
     "metadata": {
-      "type": "object"
+      "type": "object",
+      "description": "Additional event-specific information"
     }
   },
   "additionalProperties": false

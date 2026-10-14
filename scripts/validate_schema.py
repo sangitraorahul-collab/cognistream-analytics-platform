@@ -28,19 +28,13 @@ def main():
         with open(file_path, "r", encoding="utf-8") as file:
             events = json.load(file)
 
+        errors = []
+
         if not isinstance(events, list):
             print("FAILED: Expected a list of events.")
             continue
 
-        errors = []
-
         for index, event in enumerate(events, start=1):
-            if not isinstance(event, dict):
-                errors.append(
-                    f"Event {index}: Expected a JSON object."
-                )
-                continue
-
             for error in validator.iter_errors(event):
                 errors.append(
                     f"Event {index}: {error.message}"
