@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CogniStream Event Schema",
+  "description": "Standard schema for GitHub, Slack, and IDE events.",
+  "type": "object",
+  "required": [
+    "event_id",
+    "user_id",
+    "project_name",
+    "event_type",
+    "event_timestamp",
+    "metadata"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "project_name": {
+      "type": "string"
+    },
+    "event_type": {
+      "type": "string"
+    },
+    "event_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}
