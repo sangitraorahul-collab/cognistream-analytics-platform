@@ -1,0 +1,35 @@
+{
+  "name": "cognistream-vscode-activity-tracker",
+  "displayName": "CogniStream Activity Tracker",
+  "description": "Collects VS Code activity timestamps for CogniStream.",
+  "version": "1.0.0",
+  "publisher": "cognistream",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cognistream.showStatus",
+        "title": "CogniStream: Show Tracker Status"
+      }
+    ],
+    "configuration": {
+      "title": "CogniStream",
+      "properties": {
+        "cognistream.apiUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "description": "CogniStream backend API URL."
+        }
+      }
+    }
+  }
+}
