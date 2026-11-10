@@ -77,3 +77,8 @@ def get_summary():
         "total_events": df.height,
         "source_summary": summary.to_dicts()
     }
+
+from backend.realtime.router import router as realtime_router
+
+app.include_router(realtime_router)
+# Testing CogniStream automatic file-save tracking
