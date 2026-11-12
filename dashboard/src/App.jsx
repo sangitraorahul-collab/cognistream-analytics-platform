@@ -1,31 +1,10 @@
-
-import { useMemo, useState } from "react";
+﻿
+import { useEffect, useMemo, useState } from "react";
 import { BarChart } from "@tremor/react";
 
-const events = [
-  { id: "evt-001", user: "user_101", project: "DevPilot", type: "commit", source: "GitHub", time: "10:25:00", status: "Valid" },
-  { id: "evt-002", user: "user_102", project: "CogniStream", type: "edit", source: "IDE", time: "10:12:00", status: "Valid" },
-  { id: "evt-003", user: "user_103", project: "Smart Cover", type: "message", source: "Slack", time: "09:58:00", status: "Valid" },
-  { id: "evt-004", user: "user_101", project: "DevPilot", type: "push", source: "GitHub", time: "09:46:00", status: "Valid" },
-  { id: "evt-005", user: "user_104", project: "CogniStream", type: "edit", source: "IDE", time: "09:38:00", status: "Valid" },
-  { id: "evt-006", user: "user_105", project: "DevPilot", type: "message", source: "Slack", time: "09:30:00", status: "Valid" },
-];
 
-const activityData = [
-  { time: "09:00", GitHub: 2, IDE: 1, Slack: 1 },
-  { time: "09:15", GitHub: 3, IDE: 2, Slack: 1 },
-  { time: "09:30", GitHub: 2, IDE: 3, Slack: 2 },
-  { time: "09:45", GitHub: 4, IDE: 2, Slack: 1 },
-  { time: "10:00", GitHub: 3, IDE: 4, Slack: 2 },
-  { time: "10:15", GitHub: 5, IDE: 3, Slack: 2 },
-  { time: "10:30", GitHub: 3, IDE: 2, Slack: 1 },
-];
 
-const typeData = [
-  { name: "Edit", count: 4 },
-  { name: "Commit / Push", count: 4 },
-  { name: "Message", count: 4 },
-];
+
 
 function Icon({ name, size = 20 }) {
   const common = {
@@ -80,8 +59,8 @@ function KpiCard({ label, value, subtitle, icon, accent, trend }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-slate-500">{label}</p>
-          <p className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
-            {value}
+          <p className="mt-3 h-9 text-3xl font-bold tracking-tight text-slate-900">
+            {" "}
           </p>
         </div>
         <div className={`rounded-xl p-3 ${accent} bg-opacity-10`}>
@@ -90,16 +69,10 @@ function KpiCard({ label, value, subtitle, icon, accent, trend }) {
           </span>
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
-          {trend}
-        </span>
-        <span className="text-xs text-slate-500">{subtitle}</span>
-      </div>
+      <div className="mt-4 h-6" />
     </div>
   );
 }
-
 function SourceBadge({ source }) {
   const styles = {
     GitHub: "bg-slate-900 text-white",
@@ -124,8 +97,57 @@ export default function App() {
   const [sourceFilter, setSourceFilter] = useState("All sources");
   const [mobileMenu, setMobileMenu] = useState(false);
 
-  // Static sample events only. No timer or automatic event generation.
-  const [liveEvents] = useState(events);
+  const [liveEvents, setLiveEvents] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadActivities = async () => {
+      try {
+        const response = await fetch(
+          "http://127.0.0.1:8000/api/realtime/activities?limit=100"
+        );
+
+        if (!response.ok) {
+          throw new Error(`Backend returned HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const mappedEvents = (data.activities || []).map((item) => {
+          const timestamp = item.timestamp ? new Date(item.timestamp) : null;
+
+          return {
+            id: item.event_id,
+            user: item.tool || "Unknown tool",
+            project: item.workspace_name || "Unknown workspace",
+            type: (item.event_type || "activity").replaceAll("_", " "),
+            source: item.source || "IDE",
+            time:
+              timestamp && !Number.isNaN(timestamp.getTime())
+                ? timestamp.toISOString().slice(11, 19)
+                : "—",
+            status: "Received",
+          };
+        });
+
+        if (!cancelled) {
+          setLiveEvents([]);
+        }
+      } catch (error) {
+        console.error("Could not load backend activities:", error);
+      }
+    };
+
+    loadActivities();
+
+    const intervalId = window.setInterval(loadActivities, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const filteredEvents = useMemo(() => {
     return liveEvents.filter((event) => {
@@ -146,6 +168,50 @@ export default function App() {
     });
   }, [search, sourceFilter, liveEvents]);
 
+  const uniqueEventIds = useMemo(
+    () => new Set(liveEvents.map((event) => event.id).filter(Boolean)).size,
+    [liveEvents]
+  );
+
+  const sourceNames = useMemo(
+    () => [...new Set(liveEvents.map((event) => event.source).filter(Boolean))].sort(),
+    [liveEvents]
+  );
+
+  const activityData = useMemo(() => {
+    const grouped = new Map();
+
+    liveEvents.forEach((event) => {
+      const time =
+        event.time && event.time !== "—" ? event.time.slice(0, 5) : "Unknown";
+
+      if (!grouped.has(time)) {
+        const row = { time };
+        sourceNames.forEach((source) => {
+          row[source] = 0;
+        });
+        grouped.set(time, row);
+      }
+
+      const row = grouped.get(time);
+      row[event.source] = (row[event.source] || 0) + 1;
+    });
+
+    return Array.from(grouped.values()).sort((a, b) =>
+      a.time.localeCompare(b.time)
+    );
+  }, [liveEvents, sourceNames]);
+
+  const typeData = useMemo(() => {
+    const counts = new Map();
+
+    liveEvents.forEach((event) => {
+      const type = event.type || "Unknown";
+      counts.set(type, (counts.get(type) || 0) + 1);
+    });
+
+    return Array.from(counts, ([name, count]) => ({ name, count }));
+  }, [liveEvents]);
   const navigation = [
     { name: "Overview", icon: "grid" },
     { name: "Events", icon: "activity" },
@@ -209,11 +275,11 @@ export default function App() {
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
               </span>
               <span className="text-xs font-semibold text-slate-200">
-                Demo environment
+                Workspace
               </span>
             </div>
             <p className="mt-3 text-xs leading-5 text-slate-400">
-              Static sample events are displayed. Automatic event generation is disabled.
+              
             </p>
           </div>
 
@@ -226,7 +292,7 @@ export default function App() {
           </button>
 
           <p className="px-3 pb-2 pt-3 text-[11px] text-slate-600">
-            CogniStream · Week 2 Project
+            CogniStream ┬╖ Week 2 Project
           </p>
         </div>
       </aside>
@@ -280,7 +346,7 @@ export default function App() {
 
             <div className="flex items-center gap-2 self-start rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-600 shadow-sm sm:self-auto">
               <Icon name="clock" size={16} />
-              <span>Demo dataset · Oct 13, 2026</span>
+              <span>Demo dataset ┬╖ Oct 13, 2026</span>
             </div>
           </section>
 
@@ -297,46 +363,46 @@ export default function App() {
                   Key performance indicators
                 </h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  A snapshot of the loaded sample data
+                  
                 </p>
               </div>
               <span className="rounded-lg bg-white px-3 py-2 text-xs font-medium text-slate-500 ring-1 ring-slate-200">
-                Sample metrics
+                
               </span>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <KpiCard
                 label="Total Events"
-                value="12"
-                subtitle="Records in demo table"
+                value={liveEvents.length}
+                subtitle="Records loaded from API"
                 icon="database"
                 accent="bg-blue-600"
-                trend="Loaded"
+                trend="Live API"
               />
               <KpiCard
                 label="Unique Event IDs"
-                value="6"
-                subtitle="Duplicates exist in sample"
+                value={uniqueEventIds}
+                subtitle="Unique IDs in loaded records"
                 icon="layers"
                 accent="bg-violet-600"
-                trend="50% unique"
+                trend="Calculated"
               />
               <KpiCard
                 label="Schema Validation"
-                value="100%"
-                subtitle="6 of 6 input events passed"
+                value="N/A"
+                subtitle="API does not provide validation results"
                 icon="shield"
                 accent="bg-emerald-600"
-                trend="6 / 6 passed"
+                trend="Not reported"
               />
               <KpiCard
                 label="Data Sources"
-                value="3"
-                subtitle="GitHub, IDE, and Slack"
+                value={sourceNames.length}
+                subtitle="Sources found in API records"
                 icon="activity"
                 accent="bg-amber-500"
-                trend="3 sources"
+                trend="Calculated"
               />
             </div>
           </section>
@@ -349,11 +415,11 @@ export default function App() {
                     Event activity
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Illustrative activity by source and time
+                    
                   </p>
                 </div>
                 <span className="rounded-lg bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
-                  Demo visualization
+                  
                 </span>
               </div>
 
@@ -362,7 +428,7 @@ export default function App() {
                   className="h-full"
                   data={activityData}
                   index="time"
-                  categories={["GitHub", "IDE", "Slack"]}
+                  categories={sourceNames}
                   colors={["cyan", "purple", "orange"]}
                   stack={false}
                   showLegend
@@ -378,12 +444,12 @@ export default function App() {
             <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6 xl:col-span-1">
               <h2 className="text-base font-bold text-slate-900">Event types</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Illustrative category breakdown
+                
               </p>
 
               <div className="mt-5 space-y-5">
                 {typeData.map((item, index) => {
-                  const percentage = (item.count / 12) * 100;
+                  const percentage = liveEvents.length ? (item.count / liveEvents.length) * 100 : 0;
 
                   return (
                     <div key={item.name}>
@@ -425,7 +491,7 @@ export default function App() {
                     Recent events
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Search and filter the demo event records
+                    
                   </p>
                 </div>
 
@@ -450,9 +516,11 @@ export default function App() {
                     className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
                   >
                     <option>All sources</option>
-                    <option>GitHub</option>
-                    <option>IDE</option>
-                    <option>Slack</option>
+                    {sourceNames.map((source) => (
+                      <option key={source} value={source}>
+                        {source}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -532,21 +600,26 @@ export default function App() {
 
               <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-4">
                 <p className="text-xs text-slate-500">
-                  Showing {filteredEvents.length} of {liveEvents.length} demo records
+                  Showing {filteredEvents.length} of {liveEvents.length} API records
                 </p>
                 <span className="text-xs font-medium text-slate-400">
-                  Static sample data
+                  
                 </span>
               </div>
             </div>
           </section>
 
           <footer className="flex flex-col justify-between gap-2 border-t border-slate-200 pt-5 text-xs text-slate-400 sm:flex-row sm:items-center">
-            <p>© 2026 CogniStream · Event Analytics Dashboard</p>
-            <p>React · Tremor · Tailwind CSS</p>
+            <p>┬⌐ 2026 CogniStream ┬╖ Event Analytics Dashboard</p>
+            <p>React ┬╖ Tremor ┬╖ Tailwind CSS</p>
           </footer>
         </div>
       </main>
     </div>
   );
 }
+
+
+
+
+
